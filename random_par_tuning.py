@@ -10,7 +10,9 @@ import pandas as pd
 from time import time
 import scipy.stats as stats
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.ensemble import RandomForestClassifier
 from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
 
 
 # This function copied from Sklearn, link provided below. 
@@ -32,17 +34,14 @@ def report(results, n_top=3):
 train_data            = pd.read_csv("Data/data_features.csv")
 train_data_label      = pd.read_csv("Data/data_labels.csv")
 
-
 # Random Forest Classifier  
 rf_param = {'oob_score' :[True,False],
             'warm_start':[True,False],
             'max_features':['auto','log2'],
             'n_estimators': [60,70,80,90,100,110,120],
             'max_depth':[30,35,40,45,50,55,60],
-            'learning_rate':stats.uniform(0.2, 0.5),
-            'min_weight_fraction_leaf': stats.uniform(0, 0.2),
-            'min_samples_leaf': [5,10,15,20,25],
-            'random_state':[20,30,40,45,50,60,70,80]}
+            'min_weight_fraction_leaf': stats.uniform(0, 0.1),
+            'random_state':[30,40,45,50,55,60,70,80]}
   
 rf = RandomForestClassifier()
 start = time()
@@ -50,6 +49,31 @@ random_search = RandomizedSearchCV(rf, param_distributions=rf_param,n_iter=20)
 random_search.fit(train_data,train_data_label.label )
 print("RandomizedSearchCV took %.2f seconds for Random Forest." % (time() - start))
 report(random_search.cv_results_)
+
+# XGboost Classifier 
+xg_params = {
+        'min_child_weight': [1, 5, 10],
+        'gamma': [0.5, 1, 1.5, 2, 5],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0],
+        'learning_rate': stats.uniform(0, 0.2),
+        'max_depth': [3, 4, 5,6,7,8,9,10],
+        'eval_metric':['auc','mlogloss'],
+        'n_estimators':[100,200,250,300],
+        'gpu_id': [0],
+        'tree_method': ['gpu_hist']
+        }
+
+xgb = XGBClassifier(silent=True, nthread=8)
+
+#skf = StratifiedKFold(n_splits=folds, shuffle = True, random_state = 1001)  cv=skf.split(X,Y), 
+
+start = time()
+random_search = RandomizedSearchCV(xgb, param_distributions=xg_params, n_iter=20, scoring='roc_auc', n_jobs=4, random_state=1001 )
+random_search.fit(train_data,train_data_label.label )
+print("RandomizedSearchCV took %.2f seconds for XGboost." % (time() - start))
+report(random_search.cv_results_)
+
 
 
 # for fixing LightGBMError: Do not support special JSON characters in feature name.
