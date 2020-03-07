@@ -13,6 +13,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
+from datetime import datetime
 
 
 # This function copied from Sklearn, link provided below. 
@@ -29,19 +30,20 @@ def report(results, n_top=3):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+#Writing run time into Log
+print("##############################################################")
+print("New run started in  ", datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 # Load Data
 train_data            = pd.read_csv("Data/data_features.csv")
 train_data_label      = pd.read_csv("Data/data_labels.csv")
 
 # Random Forest Classifier  
-rf_param = {'oob_score' :[True,False],
-            'warm_start':[True,False],
+rf_param = {
             'max_features':['auto','log2'],
-            'n_estimators': [60,70,80,90,100,110,120],
+            'n_estimators': [80,90,100,110,120,140,150,200],
             'max_depth':[30,35,40,45,50,55,60],
-            'min_weight_fraction_leaf': stats.uniform(0, 0.1),
-            'random_state':[30,40,45,50,55,60,70,80]}
+            'random_state':[55,60,65,70,75,80,85]}
   
 rf = RandomForestClassifier()
 start = time()
@@ -59,9 +61,7 @@ xg_params = {
         'learning_rate': stats.uniform(0, 0.2),
         'max_depth': [3, 4, 5,6,7,8,9,10],
         'eval_metric':['auc','mlogloss'],
-        'n_estimators':[100,200,250,300],
-        'gpu_id': [0],
-        'tree_method': ['gpu_hist']
+        'n_estimators':[100,200,250,300]
         }
 
 xgb = XGBClassifier(silent=True, nthread=8)
