@@ -32,16 +32,12 @@ def train_evaluate(name, clf, train_data, labels, k_folds):
     print ('accuracy: {0:.3f} +/- {1:.3f}'.format(acc_mean, acc_std))
     print ('auc: {0:.3f} +/- {1:.3f}'.format(auc_mean, auc_std))
 
-
-
-
-
 #Writing run time into Log
 print("Run started in  ", datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 # Load Data
-data            = pd.read_csv("../Data/data_features.csv")
-data_label      = pd.read_csv("../Data/data_labels.csv", dtype={'label': str})
+data            = pd.read_csv("Data/data_features.csv")
+data_label      = pd.read_csv("Data/data_labels.csv", dtype={'label': str})
 
 data.reset_index(drop=True)
 data_label.reset_index(drop=True)
@@ -57,6 +53,7 @@ mappped_labels = data_label.applymap(lambda s: mapping.get(s) if s in mapping el
 
 # LightGBM Classifier  
 clf = LGBMClassifier(max_depth=50, min_child_samples=40, n_estimators=200,num_leaves=80,learning_rate=0.31245 )
+
 
 #Without all data
 start = time()
@@ -134,5 +131,57 @@ start = time()
 new_data  = data.loc[:,data.columns != 'x11_x2'].to_numpy()
 train_evaluate('Without x11_x2', clf, new_data, mappped_labels, N_KFOLDS)
 print("Learning took %.2f seconds for \"Without x11_x2\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
 
+
+#Just with x and y
+start = time()
+new_data  = data[['y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11']].to_numpy()
+train_evaluate('Just with x and y', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with x and y\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+
+#Just with avgx and avgy
+start = time()
+new_data  = data[['avgy','avgx']].to_numpy()
+train_evaluate('Just with avgx and avgy', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with avgx and avgy\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+
+#Just with x11-x2 measure
+start = time()
+new_data  = data[['x11_x2']].to_numpy()
+train_evaluate('Just with x11-x2 measure', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with x11-x2 measure\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+#Just with ball position
+start = time()
+new_data  = data[['ballx','bally']].to_numpy()
+train_evaluate('Just with ball position', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with ball position\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+#Just with ball position and x,y
+start = time()
+new_data  = data[['ballx','bally','y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11']].to_numpy()
+train_evaluate('Just with ball position and x,y', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with ball position and x and y\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+#Just with x11-x2 and ball position
+start = time()
+new_data  = data[['x11_x2','ballx','bally',]].to_numpy()
+train_evaluate('Just with x11-x2 and ball position', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with x11-x2 and ball position\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
+
+#Just with avgx, avgy, and ball position
+start = time()
+new_data  = data[['avgy','avgx','ballx','bally',]].to_numpy()
+train_evaluate('Just with avgx, avgy, and ball position', clf, new_data, mappped_labels, N_KFOLDS)
+print("Learning took %.2f seconds for \"Just with avgx, avgy, and ball position\" case with %d Stratified Cross Validation" % (time() - start, N_KFOLDS))
+print ('-'*80)
 
