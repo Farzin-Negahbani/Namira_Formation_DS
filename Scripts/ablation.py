@@ -11,22 +11,7 @@ from time import time
 from lightgbm import LGBMClassifier
 from datetime import datetime
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import roc_auc_score
-
-
-#enc = OneHotEncoder()
-
-
-#enc.inverse_transform([[0, 1, 1, 0, 0], [0, 0, 0, 1, 0]])
-
-
-
-#drop_enc.categories_
-
-#drop_enc.transform([['Female', 1], ['Male', 2]]).toarray()
-
-
 
 
 
