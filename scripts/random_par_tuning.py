@@ -36,10 +36,21 @@ print("##############################################################")
 print("New run started in  ", datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 # Load Data
-train_data            = pd.read_csv("Data/data_features.csv")
-train_data_label      = pd.read_csv("Data/data_labels.csv")
+train_data            = pd.read_csv("data/data_features.csv",index_col=0)
+train_data_label      = pd.read_csv("data/data_labels.csv",index_col=0)
 
+train_data.reset_index(drop=True)
+train_data_label.reset_index(drop=True)
 
+#Global params
+mapping = {'4321':1,  '4141':2, '442':3, '523':4,  '415':5, '352':6,  '4411':7,
+           '532':8 ,  '4123':9, '361':10, '3412':11, '343':12, '4213':13, '4312':14,
+           '3421':15, '4213a':16, '451':17, '5212':18, '433':19, '4231t':20}
+
+#Mapping formations to number
+mapped_labels = train_data_label.applymap(lambda s: mapping.get(s) if s in mapping else s)['label'].to_numpy()
+
+'''
 # Random Forest Classifier  
 rf_param = {
             'max_features':['auto','log2'],
@@ -53,11 +64,11 @@ random_search = RandomizedSearchCV(rf, param_distributions=rf_param,n_iter=N_ITE
 random_search.fit(train_data,train_data_label.label )
 print("RandomizedSearchCV took %.2f seconds for Random Forest." % (time() - start))
 report(random_search.cv_results_)
-
+'''
 
 # for fixing LightGBMError: Do not support special JSON characters in feature name.
-train_data.columns       = ["".join (c if c.isalnum() else "_" for c in str(x)) for x in train_data.columns]
-train_data_label.columns = ["".join (c if c.isalnum() else "_" for c in str(x)) for x in train_data_label.columns]
+#train_data.columns       = ["".join (c if c.isalnum() else "_" for c in str(x)) for x in train_data.columns]
+#train_data_label.columns = ["".join (c if c.isalnum() else "_" for c in str(x)) for x in train_data_label.columns]
 
 # LightGBM Classifier  
 lgbm_param = {
@@ -70,11 +81,11 @@ lgbm_param = {
 
 lgbm = LGBMClassifier()
 start = time()
-random_search = RandomizedSearchCV(lgbm, param_distributions=lgbm_param,n_iter=N_ITER,n_jobs=8)
-random_search.fit(train_data,train_data_label.label )
+random_search = RandomizedSearchCV(lgbm, param_distributions=lgbm_param,n_iter=N_ITER,n_jobs=4)
+random_search.fit(train_data,mapped_labels )
 print("RandomizedSearchCV took %.2f seconds for LGBM." % (time() - start))
 report(random_search.cv_results_)
-
+'''
 # XGboost Classifier 
 
 xg_params = {
@@ -96,5 +107,5 @@ random_search = RandomizedSearchCV(xgb, param_distributions=xg_params, n_iter=N_
 random_search.fit(train_data,train_data_label.label )
 print("RandomizedSearchCV took %.2f seconds for XGboost." % (time() - start))
 report(random_search.cv_results_)
-
+'''
 
