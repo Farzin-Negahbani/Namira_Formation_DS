@@ -1,7 +1,7 @@
 # Namira Formation Detection and Selection
 Namira Team formation detection and selection tool for soccer simulation 2D
 
-##Install 
+## Install 
 It's recommended to use virtual environment:
 
 sudo apt install virtualenv
