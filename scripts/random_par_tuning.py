@@ -74,9 +74,9 @@ report(random_search.cv_results_)
 lgbm_param = {
             'max_depth':[30,35,40,45,50,55,60],
             'min_child_samples':[10,15,20,30,40,45,50],
-            'n_estimators':[60,70,80,90,100,110,120,150,200],
+            'n_estimators':[200,300,400,500,600,650,700,800],
             'learning_rate':stats.uniform(0.2, 0.5),
-            'num_leaves':[20,30,40,45,50,60,70,80],}
+            'num_leaves':[40,45,50,55,60,65,70,80]}
 
 
 lgbm = LGBMClassifier()

@@ -16,14 +16,102 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import classification_report
 from time import time
 
+def feature_ablation(data, mapped_labels, clf, mapping_list):
+    '''
+        Applies the ablation on the input data and corresponding labels
+        
+        For all formations: 
+        mapping_list = ['4321',  '4141', '442', '523',  '415', '352',  '4411',
+           '532' ,  '4123', '361', '3412', '343', '4213', '4312',
+           '3421', '4213a', '451', '5212', '433', '4231t']
+    
+        For 3 Layer formations:
+        mapping_list = ['442', '523', '415', '352', '532', '361', '343','451', '433']
+    
+    '''
+   
 
-def train_evaluate(name, clf, train_data, labels):
+    #Without all data
+    new_data  = data.to_numpy()
+    train_evaluate('All features', clf, new_data, mapped_labels, mapping_list)
+
+    #Without y positions
+    new_data  = data[[col for col in data.columns if col not in  ['y2','y3','y4','y5','y6','y7','y8','y9','y10','y11']]].to_numpy()
+    train_evaluate('Without y', clf, new_data, mapped_labels, mapping_list)
+
+
+    #Without x positions
+    new_data  = data[[col for col in data.columns if col not in ['x2','x3','x4','x5','x6','x7','x8','x9','x10','x11']]].to_numpy()
+    train_evaluate('Without x', clf, new_data, mapped_labels, mapping_list)
+
+    #Without avg x positions
+    new_data  = data.loc[:,data.columns != 'avgx'].to_numpy()
+    train_evaluate('Without avgx', clf, new_data, mapped_labels, mapping_list)
+
+    #Without avg y positions
+    new_data  = data.loc[:,data.columns != 'avgy'].to_numpy()
+    train_evaluate('Without avgy', clf, new_data, mapped_labels, mapping_list)
+
+    #Without avg x positions and y positions
+    new_data  = data[[col for col in data.columns if col not in ['avgx','avgy']]].to_numpy()
+    train_evaluate('Without avgx and avgy', clf, new_data, mapped_labels, mapping_list)
+
+    #Without ball x positions
+    new_data  = data.loc[:,data.columns != 'ballx'].to_numpy()
+    train_evaluate('Without ballx', clf, new_data, mapped_labels, mapping_list)
+
+    #Without ball y positions
+    new_data  = data.loc[:,data.columns != 'bally'].to_numpy()
+    train_evaluate('Without bally', clf, new_data, mapped_labels, mapping_list)
+
+    #Without ball positions 
+    new_data  = data[[col for col in data.columns if col not in ['ballx','bally']]].to_numpy()
+    train_evaluate('Without ballx and bally', clf, new_data, mapped_labels), mapping_list
+
+    #Without layers measure 
+    new_data  = data.loc[:,data.columns != 'layers'].to_numpy()
+    train_evaluate('Without layers', clf, new_data, mapped_labels, mapping_list)
+
+    #Without x11-x2 measure
+    new_data  = data.loc[:,data.columns != 'x11_x2'].to_numpy()
+    train_evaluate('Without x11_x2', clf, new_data, mapped_labels, mapping_list)
+
+
+    #Just with x and y
+    new_data  = data[['y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11']].to_numpy()
+    train_evaluate('Just with x and y', clf, new_data, mapped_labels, mapping_list)
+
+    #Just with avgx and avgy
+    new_data  = data[['avgy','avgx']].to_numpy()
+    train_evaluate('Just with avgx and avgy', clf, new_data, mapped_labels, mapping_list)
+
+
+    #Just with x11-x2 measure
+    new_data  = data[['x11_x2']].to_numpy()
+    train_evaluate('Just with x11-x2 measure', clf, new_data, mapped_labels, mapping_list)
+
+    #Just with ball position
+    new_data  = data[['ballx','bally']].to_numpy()
+    train_evaluate('Just with ball position', clf, new_data, mapped_labels, mapping_list)
+
+    #Just with ball position and x,y
+    new_data  = data[['ballx','bally','y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','x2','x3','x4','x5','x6','x7','x8','x9','x10','x11']].to_numpy()
+    train_evaluate('Just with ball position and x,y', clf, new_data, mapped_labels, mapping_list)
+
+    #Just with x11-x2 and ball position
+    new_data  = data[['x11_x2','ballx','bally',]].to_numpy()
+    train_evaluate('Just with x11-x2 and ball position', clf, new_data, mapped_labels, mapping_list)
+
+
+    #Just with avgx, avgy, and ball position
+    new_data  = data[['avgy','avgx','ballx','bally',]].to_numpy()
+    train_evaluate('Just with avgx, avgy, and ball position', clf, new_data, mapped_labels, mapping_list)
+
+
+def train_evaluate(name, clf, train_data, labels, mapping_list):
     '''
     This function trains, evaluates and then reports the classification metrics
     '''
-    mapping_list = ['4321',  '4141', '442', '523',  '415', '352',  '4411',
-           '532' ,  '4123', '361', '3412', '343', '4213', '4312',
-           '3421', '4213a', '451', '5212', '433', '4231t']
 
     start = time()
     xt, xv, yt, yv = train_test_split(train_data, labels, test_size=0.33, random_state=42)
