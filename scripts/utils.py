@@ -16,6 +16,74 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import classification_report
 from time import time
 
+
+def gen_seq_data(inputfile="../data/sorted_raw_data.csv",cons_cycles=10, pks=15):
+    '''
+        Generates non-overlapping consecutive and random datasets form 
+        sorted raw dataset 
+    '''
+    i = 0
+    dic      = {}
+    pks_dic  = {} 
+    cons_set = ["UPCI,PCI,game,cycle,x2,y2,x3,y3,x4,y4,x5,y5,x6,y6,x7,y7,x8,y8,x9,y9,x10,y10,x11,y11,avgx,avgy,x11-x2,ballx,bally,layers,label\n"]
+    rand_set = ["UPCI,PCI,game,cycle,x2,y2,x3,y3,x4,y4,x5,y5,x6,y6,x7,y7,x8,y8,x9,y9,x10,y10,x11,y11,avgx,avgy,x11-x2,ballx,bally,layers,label\n"]
+    temp_set = []
+
+    fo  = open(inputfile, "r")
+
+    for line in fo:
+        if i>1:
+            # same UPCI not registered in dic still need more data
+            if not line.split(',')[0] in dic.keys() and len(temp_set) < cons_cycles and last_line.split(',')[0] == line.split(',')[0]:
+                temp_set.append(line)
+
+            # same UPCI not registered in dic found enough data
+            elif not line.split(',')[0] in dic.keys() and len(temp_set) == cons_cycles and last_line.split(',')[0] == line.split(',')[0]:
+                if line.split(',')[-1] in pks_dic.keys() and pks_dic[line.split(',')[-1]] < pks:
+                    temp_set.append(line)
+                    cons_set.extend(temp_set)
+                    pks_dic[line.split(',')[-1]] +=1
+                    dic[line.split(',')[0]]       = cons_cycles
+                
+                elif not line.split(',')[-1] in pks_dic.keys() :
+                    pks_dic[line.split(',')[-1]] = 1
+                    temp_set.append(line)
+                    cons_set.extend(temp_set)
+                    dic[line.split(',')[0]]       = cons_cycles
+                
+                else:
+                    temp_set.append(line)
+                    rand_set.extend(temp_set)
+                
+                temp_set=[]
+            
+            # UPCI changed but couldn't find sufficient amount of data
+            elif not line.split(',')[0] in dic.keys() and last_line.split(',')[0] != line.split(',')[0]:
+                temp_set.append(line)
+                rand_set.extend(temp_set)
+                temp_set=[]
+
+            # same UPCI registered in dic
+            elif line.split(',')[0] in dic.keys():
+                temp_set.append(line)
+                rand_set.extend(temp_set)
+                temp_set=[]
+    
+        last_line = line
+        i+=1
+
+    fo.close()
+    
+    fo = open("cons_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv", "w")
+    fo.writelines(cons_set)
+    fo.close()
+
+    fo = open("rand_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv", "w")
+    fo.writelines(rand_set)
+    fo.close()
+
+
+
 def feature_ablation(data, mapped_labels, clf, mapping_list):
     '''
         Applies the ablation on the input data and corresponding labels
@@ -29,8 +97,6 @@ def feature_ablation(data, mapped_labels, clf, mapping_list):
         mapping_list = ['442', '523', '415', '352', '532', '361', '343','451', '433']
     
     '''
-   
-
     #Without all data
     new_data  = data.to_numpy()
     train_evaluate('All features', clf, new_data, mapped_labels, mapping_list)
@@ -66,7 +132,7 @@ def feature_ablation(data, mapped_labels, clf, mapping_list):
 
     #Without ball positions 
     new_data  = data[[col for col in data.columns if col not in ['ballx','bally']]].to_numpy()
-    train_evaluate('Without ballx and bally', clf, new_data, mapped_labels), mapping_list
+    train_evaluate('Without ballx and bally', clf, new_data, mapped_labels, mapping_list)
 
     #Without layers measure 
     new_data  = data.loc[:,data.columns != 'layers'].to_numpy()
@@ -117,8 +183,6 @@ def train_evaluate(name, clf, train_data, labels, mapping_list):
     xt, xv, yt, yv = train_test_split(train_data, labels, test_size=0.33, random_state=42)
     clf.fit(xt, yt)
     yhat  = clf.predict(xv)
-    proba = clf.predict_proba(xv)
-    acc=np.mean(yhat == yv)
 
     print ("In Case : ",name)
     print("Traing and evaluation took %.2f seconds." % (time() - start))

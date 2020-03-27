@@ -32,12 +32,11 @@ mapping = {'4321':0,  '4141':1, '442':2, '523':3,  '415':4, '352':5,  '4411':6,
 mapped_labels = data_label.applymap(lambda s: mapping.get(s) if s in mapping else s)['label'].to_numpy()
 
 # LightGBM Classifier  
-clf = LGBMClassifier(learning_rate= 0.3478916588531426, max_depth=55,
-    min_child_samples=45, n_estimators=600, num_leaves=80)
+#clf = LGBMClassifier(learning_rate= 0.3478916588531426, max_depth=55,
+#    min_child_samples=45, n_estimators=600, num_leaves=80)
 
 # LightGBM Classifier  
-#clf = LGBMClassifier(learning_rate= 0.24, max_depth=55,
-#    min_child_samples=45, n_estimators=200, num_leaves=80)
+clf = LGBMClassifier(learning_rate= 0.24, max_depth=55, min_child_samples=45, n_estimators=200, num_leaves=80)
 
 
 # Performing the ablation for all formations proposed 
