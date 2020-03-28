@@ -16,17 +16,58 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import classification_report
 from time import time
 
+def data_loader(rand_data_file, seq_data_file):
+    '''
+        Loads our required datasets
+    '''
+    # Load Random Data
+    r_data  = pd.read_csv(rand_data_file,dtype={'label': str})
 
-def gen_seq_data(inputfile="../data/sorted_raw_data.csv",cons_cycles=10, pks=15):
+    # Load Seq Data
+    s_data  = pd.read_csv(seq_data_file,dtype={'label': str})
+
+    # Reset the index
+    #s_data.reset_index(drop=True)
+    #r_data.reset_index(drop=True)
+
+    #      r_data                      , r_data_label     , s_data                      , s_data_label
+    return r_data[r_data.columns[4:-1]], r_data[['label']], s_data[s_data.columns[4:-1]], s_data[['label']]
+
+
+def gen_data_set(inputfile="../data/clean_dataset.csv",cons_cycles=10, pks=15, down_sample=0.1, replacement=False):
     '''
         Generates non-overlapping consecutive and random datasets form 
-        sorted raw dataset 
+        the clean_dataset 
+
+        cons_cycles: int
+            Number of sequential cycles of data 
+
+        pks: int
+            Number of sequences of lenght cons_cycles extracted from each formation in each game
+
+        down_sample: float
+            Sample ratio of the residual data after sequence extraction
+
+        replacement: bool
+            Sampling with replacement (Default False). Just for the residual down sampling
+
+        Columns in the sorted raw dataset:
+            cols = ['UPCI','PCI','game','cycle','x2','y2',
+            'x3','y3','x4','y4','x5','y5','x6','y6',
+            'x7','y7','x8','y8','x9','y9','x10','y10',
+            'x11','y11','avgx','avgy','x11-x2','ballx',
+            'bally','layers','label']
     '''
+    cols = ['UPCI','PCI','game','cycle','x2','y2',
+            'x3','y3','x4','y4','x5','y5','x6','y6',
+            'x7','y7','x8','y8','x9','y9','x10','y10',
+            'x11','y11','avgx','avgy','x11-x2','ballx',
+            'bally','layers','label']
     i = 0
     dic      = {}
     pks_dic  = {} 
     cons_set = ["UPCI,PCI,game,cycle,x2,y2,x3,y3,x4,y4,x5,y5,x6,y6,x7,y7,x8,y8,x9,y9,x10,y10,x11,y11,avgx,avgy,x11-x2,ballx,bally,layers,label\n"]
-    rand_set = ["UPCI,PCI,game,cycle,x2,y2,x3,y3,x4,y4,x5,y5,x6,y6,x7,y7,x8,y8,x9,y9,x10,y10,x11,y11,avgx,avgy,x11-x2,ballx,bally,layers,label\n"]
+    rand_set = []
     temp_set = []
 
     fo  = open(inputfile, "r")
@@ -74,15 +115,74 @@ def gen_seq_data(inputfile="../data/sorted_raw_data.csv",cons_cycles=10, pks=15)
 
     fo.close()
     
-    fo = open("cons_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv", "w")
+    fo = open("seq_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv", "w")
     fo.writelines(cons_set)
     fo.close()
+    del cons_set
 
-    fo = open("rand_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv", "w")
-    fo.writelines(rand_set)
-    fo.close()
+    # down sample from the residual data
+    rand_df = pd.DataFrame([sub.split(",") for sub in rand_set], columns= cols)
+    del rand_set
+    rand_df = rand_df.sample(frac=down_sample, replace=replacement, random_state=37)
+
+    rand_df.to_csv("rand_data_cons_"+str(cons_cycles)+"_pks_"+str(pks)+".csv",index=False)
 
 
+def feature_ablation_seq(r_data, r_mapped_labels, clf, r_mapping_list, s_data, s_np_label, cons_cycles):
+    '''
+        Applies the ablation on the input data and corresponding labels
+        
+        For all formations: 
+        mapping_list = ['4321',  '4141', '442', '523',  '415', '352',  '4411',
+           '532' ,  '4123', '361', '3412', '343', '4213', '4312',
+           '3421', '4213a', '451', '5212', '433', '4231t']
+    
+        For 3 Layer formations:
+        mapping_list = ['442', '523', '415', '352', '532', '361', '343','451', '433']
+    
+    '''
+    # All data Training
+    new_data  = r_data.to_numpy()
+    clf       = train_evaluate('All features',
+                 clf, new_data, r_mapped_labels.to_numpy(), r_mapping_list,verbose=False)
+
+    # Test on sequential set
+    s_np_data  = s_data.to_numpy()
+    s_np_label = s_np_label.to_numpy()
+    start      = time()
+    yhat       = clf.predict(s_np_data)
+    print("Prediction of ",len(s_np_label)," cycles took %.2f seconds. " % (time() - start))
+
+    #              T  F
+    res_dic    = {el:[0,0,0] for el in r_mapping_list}
+    t_count    = 0
+    f_count    = 0
+
+
+    r_mapping_list = list(r_mapping_list)
+
+    counter = 1
+    for i in range(len(s_np_label)):
+
+        if s_np_label[i][0] == yhat[i][0:-1]:
+                t_count    +=1
+        else:
+                f_count    +=1
+        if(counter == cons_cycles):
+            counter = 1
+            if t_count > f_count:
+                res_dic[s_np_label[i][0]][0] += 1
+            else:
+                res_dic[s_np_label[i][0]][1] += 1
+
+        counter +=1
+
+
+    for key in res_dic.keys():
+        res_dic[key][2] =   res_dic[key][0]/(res_dic[key][0]+ res_dic[key][1])
+    
+    print("Model accuracy for sequential cycles with voting is:")
+    print(res_dic)
 
 def feature_ablation(data, mapped_labels, clf, mapping_list):
     '''
@@ -97,7 +197,7 @@ def feature_ablation(data, mapped_labels, clf, mapping_list):
         mapping_list = ['442', '523', '415', '352', '532', '361', '343','451', '433']
     
     '''
-    #Without all data
+    #All data
     new_data  = data.to_numpy()
     train_evaluate('All features', clf, new_data, mapped_labels, mapping_list)
 
@@ -174,7 +274,7 @@ def feature_ablation(data, mapped_labels, clf, mapping_list):
     train_evaluate('Just with avgx, avgy, and ball position', clf, new_data, mapped_labels, mapping_list)
 
 
-def train_evaluate(name, clf, train_data, labels, mapping_list):
+def train_evaluate(name, clf, train_data, labels, mapping_list, verbose=True):
     '''
     This function trains, evaluates and then reports the classification metrics
     '''
@@ -184,17 +284,20 @@ def train_evaluate(name, clf, train_data, labels, mapping_list):
     clf.fit(xt, yt)
     yhat  = clf.predict(xv)
 
-    print ("In Case : ",name)
-    print("Traing and evaluation took %.2f seconds." % (time() - start))
-    
-    sk_report    = classification_report(digits=4,y_true=yv, y_pred=yhat,target_names=mapping_list)
-    print("Classification Report: ")
-    print(sk_report)
+    if verbose:
+        print ("In Case : ",name)
+        print("Traing and evaluation took %.2f seconds." % (time() - start))
+        
+        sk_report    = classification_report(digits=4,y_true=yv, y_pred=yhat,target_names=mapping_list)
+        print("Classification Report: ")
+        print(sk_report)
 
-    #my_sk_report = class_report(y_true=yv, y_pred=yhat)
-    #print(my_sk_report)
+        #my_sk_report = class_report(y_true=yv, y_pred=yhat)
+        #print(my_sk_report)
 
-    print ('-'*80)
+        print ('-'*80)
+
+    return clf
 
 
 def class_report(y_true, y_pred, y_score=None, average='micro'):
